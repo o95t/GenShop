@@ -3,6 +3,7 @@ using AutoMapper;
 using Core.Entities;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace API.Controllers
 {
@@ -12,16 +13,29 @@ namespace API.Controllers
     {
         private readonly IMapper _mapper;
         private readonly IEmployeeRepository _employeeRepository;
+        private readonly IMemoryCache _memoryCache;
 
-        public EmployeesController(IMapper mapper, IEmployeeRepository employeeRepository)
+        public EmployeesController(IMapper mapper, IEmployeeRepository employeeRepository, IMemoryCache memoryCache)
         {
             _mapper = mapper;
             _employeeRepository = employeeRepository;
+            _memoryCache = memoryCache;
         }
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetAll()
         {
-            var employees = await _employeeRepository.GetAllAsync();
+            var cacheKey = "customerList";
+            if (!_memoryCache.TryGetValue(cacheKey, out IEnumerable<Employee> employees))
+            {
+                employees = await _employeeRepository.GetAllAsync();
+                var cacheExpiryOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpiration = DateTime.Now.AddMinutes(5),
+                    Priority = CacheItemPriority.High,
+                    SlidingExpiration = TimeSpan.FromMinutes(2)
+                };
+                _memoryCache.Set(cacheKey, employees, cacheExpiryOptions);
+            }
             return Ok(_mapper.Map<IEnumerable<EmployeeDto>>(employees));
         }
 

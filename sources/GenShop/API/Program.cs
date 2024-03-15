@@ -12,6 +12,7 @@ builder.Services.AddDbContext<EmployeeContext>(option =>
 });
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
